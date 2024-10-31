@@ -1,18 +1,30 @@
-import {useEffect, useState} from "react";
-import {SidebarProvider} from "@/components/ui/sidebar";
-import {AppSidebar} from "@/components/app-sidebar";
-import {me} from "../services/userService.ts";
-import {findAllTickets, findTicketsByUserId} from "../services/ticketService.ts";
-import {TicketCard} from "@/components/ticket-card.tsx";
-import {CreateTicketModal} from "@/components/create-ticket-modal.tsx";
-import {connectSocket} from "@/config/socket.ts";
-import {Socket} from "socket.io-client";
+import { useEffect, useState } from "react";
+import { SidebarProvider } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/app-sidebar";
+import { me } from "../services/userService.ts";
+import { findAllTickets, findTicketsByUserId } from "../services/ticketService.ts";
+import { TicketCard } from "@/components/ticket-card.tsx";
+import { CreateTicketModal } from "@/components/create-ticket-modal.tsx";
+import {
+    Pagination,
+    PaginationContent,
+    PaginationItem,
+    PaginationLink,
+    PaginationNext,
+    PaginationPrevious,
+} from "@/components/ui/pagination";
+import { connectSocket } from "@/config/socket.ts";
+import { Socket } from "socket.io-client";
+import { useToast } from "@/hooks/use-toast"; // Importando o hook useToast
+
+const ITEMS_PER_PAGE = 12;
 
 type Ticket = {
     id: number;
     requester: string;
     problemDescription: string;
     finished: boolean;
+    notes?: string;
     createdAt: string;
     updatedAt: string;
     userId: number;
@@ -23,7 +35,7 @@ type Ticket = {
     };
     Sector?: {
         name: string;
-    }
+    };
 };
 
 type User = {
@@ -50,7 +62,6 @@ type TicketsState = {
     closedTickets: Ticket[];
 };
 
-// Função para organizar tickets por estado
 const getTickets = (tickets: Ticket[]): TicketsState => {
     const openTickets = tickets.filter(ticket => !ticket.finished && !ticket.assignedTo);
     const assignedTickets = tickets.filter(ticket => !ticket.finished && ticket.assignedTo);
@@ -59,18 +70,36 @@ const getTickets = (tickets: Ticket[]): TicketsState => {
     return {
         openTickets,
         assignedTickets,
-        closedTickets
+        closedTickets,
     };
 };
 
 let socket: Socket;
 
 export function Dashboard() {
+    const { toast } = useToast(); // Usando o hook useToast
     const [loggedInUser, setLoggedInUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
-    const [tickets, setTickets] = useState<TicketsState>({openTickets: [], assignedTickets: [], closedTickets: []});
+    const [tickets, setTickets] = useState<TicketsState>({
+        openTickets: [],
+        assignedTickets: [],
+        closedTickets: [],
+    });
     const [activeTab, setActiveTab] = useState<'open' | 'progress' | 'closed'>('open');
     const [isModalOpen, setModalOpen] = useState(false);
+    const [currentPage, setCurrentPage] = useState(1);
+
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+    const endIndex = startIndex + ITEMS_PER_PAGE;
+
+    const currentTickets = tickets[`${activeTab === 'open' ? 'openTickets' : activeTab === 'progress' ? 'assignedTickets' : 'closedTickets'}`];
+    const paginatedTickets = currentTickets.slice(startIndex, endIndex);
+
+    const handlePageChange = (page: number) => {
+        if (page > 0 && page <= Math.ceil(currentTickets.length / ITEMS_PER_PAGE)) {
+            setCurrentPage(page);
+        }
+    };
 
     useEffect(() => {
         const token = localStorage.getItem('token');
@@ -78,11 +107,40 @@ export function Dashboard() {
             socket = connectSocket();
         }
 
+        socket.on('ticketCreated', async (newTicket) => {
+            setTickets(prevTickets => ({
+                ...prevTickets,
+                openTickets: [...prevTickets.openTickets, newTicket]
+            }));
+            toast({
+                title: "Novo Ticket!",
+                description: "Um novo ticket foi criado.",
+                variant: "default",
+            });
+            await onTicketUpdated();
+        });
+
         socket.on('ticketUpdated', async (updatedTicket) => {
             setTickets(prevTickets => {
                 const updatedOpenTickets = prevTickets.openTickets.map(ticket =>
                     ticket.id === updatedTicket.id ? updatedTicket : ticket
                 );
+
+                // Verifica se o usuário logado é o dono do ticket
+                if (updatedTicket.userId === loggedInUser?.id) {
+                    let message;
+                    if (updatedTicket.finished) {
+                        message = `Seu ticket "${updatedTicket.problemDescription}" foi finalizado.`;
+                    } else {
+                        message = `Seu ticket "${updatedTicket.problemDescription}" foi atualizado.`;
+                    }
+
+                    toast({
+                        title: updatedTicket.finished ? "Ticket Finalizado!" : "Ticket Atualizado!",
+                        description: message,
+                        variant: "default",
+                    });
+                }
 
                 return {
                     ...prevTickets,
@@ -92,18 +150,19 @@ export function Dashboard() {
             await onTicketUpdated();
         });
 
-        socket.on('ticketCreated', async (newTicket) => {
-            setTickets(prevTickets => ({
-                ...prevTickets,
-                openTickets: [...prevTickets.openTickets, newTicket]
-            }));
-            await onTicketUpdated();
-        });
-
         socket.on('assignedTicket', async (assignedTicket) => {
             setTickets(prevTickets => {
                 const openTickets = prevTickets.openTickets.filter(ticket => ticket.id !== assignedTicket.id);
                 const assignedTickets = [...prevTickets.assignedTickets, assignedTicket];
+
+                // Verifica se o usuário logado é o dono do ticket
+                if (assignedTicket.userId === loggedInUser?.id) {
+                    toast({
+                        title: "Ticket Atribuído!",
+                        description: `Seu ticket "${assignedTicket.problemDescription}" foi atribuído a alguém.`,
+                        variant: "default",
+                    });
+                }
 
                 return {
                     ...prevTickets,
@@ -122,14 +181,17 @@ export function Dashboard() {
                 setLoggedInUser(user);
 
                 if (user) {
-                    // Carrega todos os tickets se o usuário for admin
                     const allTickets = user.isAdmin ? await findAllTickets(token) : await findTicketsByUserId(token);
-                    console.log(allTickets)
                     setTickets(getTickets(allTickets));
                     await onTicketUpdated();
                 }
             } catch (error) {
                 console.error("Erro ao buscar usuário logado:", error);
+                toast({ // Adicionando toast de erro ao buscar usuário
+                    title: "Erro ao Buscar Usuário",
+                    description: "Houve um problema ao carregar suas informações.",
+                    variant: "destructive",
+                });
             } finally {
                 setLoading(false);
             }
@@ -143,30 +205,40 @@ export function Dashboard() {
         };
     }, []);
 
-    // Atualiza a lista de tickets
     const onTicketUpdated = async () => {
         const token = localStorage.getItem('token');
         if (!token) return;
 
         try {
-            const updatedTickets = await findAllTickets(token);
+            const user = await me(token);
+            setLoggedInUser(user);
+
+            const updatedTickets = user.isAdmin ? await findAllTickets(token) : await findTicketsByUserId(token);
             setTickets(getTickets(updatedTickets));
         } catch (error) {
             console.error("Erro ao atualizar tickets:", error);
+            toast({ // Adicionando toast de erro ao atualizar tickets
+                title: "Erro ao Atualizar Tickets",
+                description: "Houve um problema ao atualizar os tickets.",
+                variant: "destructive",
+            });
         }
     };
 
-    // Abre o modal para criar um novo ticket
     const handleCreateNewTicket = () => {
         setModalOpen(true);
     };
 
-    // Atualiza a lista de tickets quando um novo ticket é criado
     const handleTicketCreated = (newTicket: Ticket) => {
-        setTickets((prevTickets) => ({
+        setTickets(prevTickets => ({
             ...prevTickets,
             openTickets: [...prevTickets.openTickets, newTicket],
         }));
+        toast({ // Adicionando toast de sucesso quando um ticket é criado
+            title: "Ticket Criado!",
+            description: "Seu novo ticket foi criado com sucesso.",
+            variant: "default",
+        });
     };
 
     const isAdmin = loggedInUser?.isAdmin;
@@ -220,89 +292,58 @@ export function Dashboard() {
                             </button>
                         </div>
 
-                        {activeTab === 'open' && (
-                            <div>
-                                <h3 className="text-lg font-semibold">Tickets Abertos</h3>
-                                <div className="flex-row flex flex-wrap">
-                                    {tickets.openTickets.length === 0 ? (
-                                        <p className="text-gray-500">Nenhum ticket aberto.</p>
-                                    ) : (
-                                        tickets.openTickets.map((ticket) => (
-                                            <TicketCard
-                                                key={ticket.id}
-                                                id={ticket.id}
-                                                requester={ticket.requester}
-                                                problemDescription={ticket.problemDescription}
-                                                assignedTo={ticket.assignedTo}
-                                                finished={ticket.finished}
-                                                createdAt={ticket.createdAt}
-                                                updatedAt={ticket.updatedAt}
-                                                onTicketUpdated={onTicketUpdated}
-                                                loggedInUserId={loggedInUser!.id}
-                                                isAdmin={isAdmin as boolean}
-                                                Sector={{ name: ticket.Sector?.name ?? ""}}
-                                            />
-                                        ))
-                                    )}
-                                </div>
+                        <div>
+                            <h3 className="text-lg font-semibold">
+                                {activeTab === 'open' ? 'Tickets Abertos' : activeTab === 'progress' ? 'Tickets Em Progresso' : 'Tickets Finalizados'}
+                            </h3>
+                            <div className="flex-row flex flex-wrap">
+                                {paginatedTickets.length === 0 ? (
+                                    <p className="text-gray-500">Nenhum ticket encontrado.</p>
+                                ) : (
+                                    paginatedTickets.map((ticket, index) => (
+                                        <TicketCard
+                                            key={`${ticket.id}-${index}`}
+                                            id={ticket.id}
+                                            requester={ticket.requester}
+                                            problemDescription={ticket.problemDescription}
+                                            assignedTo={ticket.assignedTo}
+                                            finished={ticket.finished}
+                                            notes={ticket.notes}
+                                            createdAt={ticket.createdAt}
+                                            updatedAt={ticket.updatedAt}
+                                            loggedInUserId={loggedInUser!.id}
+                                            isAdmin={isAdmin as boolean}
+                                            onTicketUpdated={onTicketUpdated}
+                                            Sector={{name: ticket.Sector?.name ?? ""}}
+                                        />
+                                    ))
+                                )}
                             </div>
-                        )}
 
-                        {activeTab === 'progress' && (
-                            <div>
-                                <h3 className="text-lg font-semibold">Tickets Em Progresso</h3>
-                                <div className="flex-row flex flex-wrap">
-                                    {tickets.assignedTickets.length === 0 ? (
-                                        <p className="text-gray-500">Nenhum ticket em progresso.</p>
-                                    ) : (
-                                        tickets.assignedTickets.map((ticket) => (
-                                            <TicketCard
-                                                key={ticket.id}
-                                                id={ticket.id}
-                                                requester={ticket.requester}
-                                                problemDescription={ticket.problemDescription}
-                                                assignedTo={ticket.assignedTo}
-                                                finished={ticket.finished}
-                                                createdAt={ticket.createdAt}
-                                                updatedAt={ticket.updatedAt}
-                                                onTicketUpdated={onTicketUpdated}
-                                                loggedInUserId={loggedInUser!.id}
-                                                isAdmin={isAdmin as boolean}
-                                                Sector={{ name: ticket.Sector?.name ?? ""}}
-                                            />
-                                        ))
-                                    )}
-                                </div>
-                            </div>
-                        )}
-
-                        {activeTab === 'closed' && (
-                            <div>
-                                <h3 className="text-lg font-semibold">Tickets Finalizados</h3>
-                                <div className="flex-row flex flex-wrap">
-                                    {tickets.closedTickets.length === 0 ? (
-                                        <p className="text-gray-500">Nenhum ticket finalizado.</p>
-                                    ) : (
-                                        tickets.closedTickets.map((ticket) => (
-                                            <TicketCard
-                                                key={ticket.id}
-                                                id={ticket.id}
-                                                requester={ticket.requester}
-                                                problemDescription={ticket.problemDescription}
-                                                assignedTo={ticket.assignedTo}
-                                                finished={ticket.finished}
-                                                createdAt={ticket.createdAt}
-                                                updatedAt={ticket.updatedAt}
-                                                onTicketUpdated={onTicketUpdated}
-                                                loggedInUserId={loggedInUser!.id}
-                                                isAdmin={isAdmin as boolean}
-                                                Sector={{ name: ticket.Sector?.name ?? ""}}
-                                            />
-                                        ))
-                                    )}
-                                </div>
-                            </div>
-                        )}
+                            {currentTickets.length >= 12 && ( // Condição para exibir a paginação
+                                <Pagination className="mt-8">
+                                    <PaginationPrevious
+                                        className={`hover:cursor-pointer ${currentPage === 1 ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                        onClick={() => currentPage > 1 && handlePageChange(currentPage - 1)}>
+                                        Anterior
+                                    </PaginationPrevious>
+                                    <PaginationContent className="hover:cursor-pointer">
+                                        {Array.from({length: Math.ceil(currentTickets.length / ITEMS_PER_PAGE)}, (_, i) => (
+                                            <PaginationItem key={i + 1}>
+                                                <PaginationLink
+                                                    className={`py-2 px-4 rounded ${currentPage === i + 1 ? 'bg-slate-400 text-white' : 'bg-gray-200'}`}
+                                                    onClick={() => handlePageChange(i + 1)}>{i + 1}</PaginationLink>
+                                            </PaginationItem>
+                                        ))}
+                                    </PaginationContent>
+                                    <PaginationNext
+                                        className={`hover:cursor-pointer ${currentPage === Math.ceil(currentTickets.length / ITEMS_PER_PAGE) ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                        onClick={() => currentPage < Math.ceil(currentTickets.length / ITEMS_PER_PAGE) && handlePageChange(currentPage + 1)}>
+                                        Próximo
+                                    </PaginationNext>
+                                </Pagination>
+                            )}
+                        </div>
                     </div>
                 </div>
             </div>

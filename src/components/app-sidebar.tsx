@@ -1,5 +1,5 @@
-import {Calendar, Home, Inbox, Search, Settings} from "lucide-react"
-
+import { useEffect, useState } from "react";
+import { LogOut, Home, User, Settings } from "lucide-react";
 import {
     Sidebar,
     SidebarContent,
@@ -8,39 +8,57 @@ import {
     SidebarGroupLabel,
     SidebarMenu,
     SidebarMenuButton,
-    SidebarMenuItem,
-} from "@/components/ui/sidebar"
-
-// Menu items.
-const items = [
-    {
-        title: "Home",
-        url: "#",
-        icon: Home,
-    },
-    {
-        title: "Inbox",
-        url: "#",
-        icon: Inbox,
-    },
-    {
-        title: "Calendar",
-        url: "#",
-        icon: Calendar,
-    },
-    {
-        title: "Search",
-        url: "#",
-        icon: Search,
-    },
-    {
-        title: "Settings",
-        url: "#",
-        icon: Settings,
-    },
-]
+    SidebarMenuItem, SidebarTrigger,
+} from "@/components/ui/sidebar";
+import { me } from "@/services/userService";
 
 export function AppSidebar() {
+    const [isAdmin, setIsAdmin] = useState(false);
+    const token = localStorage.getItem("token");
+
+    useEffect(() => {
+        const fetchUserData = async () => {
+            if (token) {
+                try {
+                    const user = await me(token);
+                    setIsAdmin(user.isAdmin);
+                } catch (error) {
+                    console.error("Erro ao buscar dados do usuário:", error);
+                }
+            }
+        };
+
+        fetchUserData();
+    }, [token]);
+
+    // Menu items
+    const items = [
+        {
+            title: "Painel",
+            url: "/dashboard",
+            icon: Home,
+        },
+        ...(isAdmin ? [{
+            title: "Usuários",
+            url: "/painel/usuarios",
+            icon: User,
+        }] : []),
+        {
+            title: "Configurações",
+            url: "/configuracoes",
+            icon: Settings,
+        },
+        {
+            title: "Sair",
+            url: "/login",
+            icon: LogOut,
+            action: () => {
+                localStorage.removeItem("token");
+                window.location.href = "/login";
+            }
+        },
+    ];
+
     return (
         <Sidebar>
             <SidebarContent>
@@ -51,10 +69,17 @@ export function AppSidebar() {
                             {items.map((item) => (
                                 <SidebarMenuItem key={item.title}>
                                     <SidebarMenuButton asChild>
-                                        <a href={item.url}>
-                                            <item.icon/>
-                                            <span>{item.title}</span>
-                                        </a>
+                                        {item.action ? (
+                                            <a href="#" onClick={item.action}>
+                                                <item.icon />
+                                                <span>{item.title}</span>
+                                            </a>
+                                        ) : (
+                                            <a href={item.url}>
+                                                <item.icon />
+                                                <span>{item.title}</span>
+                                            </a>
+                                        )}
                                     </SidebarMenuButton>
                                 </SidebarMenuItem>
                             ))}
@@ -63,5 +88,5 @@ export function AppSidebar() {
                 </SidebarGroup>
             </SidebarContent>
         </Sidebar>
-    )
+    );
 }

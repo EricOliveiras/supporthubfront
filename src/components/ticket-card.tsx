@@ -1,33 +1,35 @@
 import {useState} from "react";
 import {Card, CardHeader, CardFooter, CardContent} from "@/components/ui/card";
 import {Dialog, DialogContent, DialogTitle, DialogDescription, DialogFooter} from "@/components/ui/dialog";
-import {assignTicket, updateTicket, Ticket} from "@/services/ticketService.ts";
+import {assignTicket, updateTicket} from "@/services/ticketService.ts";
+import {useToast} from "@/hooks/use-toast"; // Importando o hook do toast
 
 type TicketCardProps = {
     id: number;
     requester: string;
     problemDescription: string;
     finished: boolean;
+    notes?: string;
     createdAt: string;
     updatedAt: string;
     Sector: {
         name: string;
-    }
+    };
     assignedTo?: {
         id: number;
         fullName: string;
     };
-    loggedInUserId: number; // ID do usuário logado
-    isAdmin: boolean; // Nova prop para verificar se o usuário é admin
+    loggedInUserId: number;
+    isAdmin: boolean;
     onTicketUpdated: () => void;
 };
-
 
 export function TicketCard({
                                id,
                                requester,
                                problemDescription,
                                finished,
+                               notes,
                                createdAt,
                                updatedAt,
                                assignedTo,
@@ -37,6 +39,8 @@ export function TicketCard({
                                onTicketUpdated,
                            }: TicketCardProps) {
     const [isModalOpen, setIsModalOpen] = useState(false);
+    const [solutionNotes, setSolutionNotes] = useState("");
+    const {toast} = useToast();
 
     const openModal = () => {
         setIsModalOpen(true);
@@ -51,55 +55,66 @@ export function TicketCard({
         if (!token) return;
 
         try {
-            const updatedTicket: Ticket = await assignTicket(id, token);
-            console.log("Ticket atualizado:", updatedTicket);
+            await assignTicket(id, token);
             closeModal();
-            alert("Responsável atribuído com sucesso!");
+            toast({
+                title: "Você atenderá o ticket selecionado.",
+                description: `O ticket #${id} será atendido por você.`,
+            });
             onTicketUpdated();
         } catch (error) {
             console.error("Erro ao atribuir responsável:", error);
-            alert("Houve um erro ao atribuir o responsável. Tente novamente.");
+            toast({
+                title: "Erro ao atender ticket!",
+                description: "Houve um problema ao tentar atender o ticket. Tente novamente.",
+                variant: "destructive",
+            });
         }
     };
 
     const finalizeTicket = async () => {
         const token = localStorage.getItem("token");
         if (!token) {
-            alert("Token não encontrado. Você precisa estar logado.");
+            toast({
+                title: "Erro de autenticação",
+                description: "Token não encontrado. Você precisa estar logado.",
+                variant: "destructive",
+            });
             return;
         }
 
         try {
-            const ticket = await updateTicket(id, {finished: true}, token);
-            console.log("Ticket finalizado:", ticket);
+            await updateTicket(id, {finished: true, notes: solutionNotes}, token);
             closeModal();
-            alert("Ticket finalizado com sucesso!");
-            if (typeof onTicketUpdated === 'function') {
-                onTicketUpdated();
-            } else {
-                console.error("onTicketUpdated não é uma função.");
-            }
+            toast({
+                title: "Ticket finalizado com sucesso!",
+                description: `O ticket #${id} foi finalizado.`,
+            });
+            onTicketUpdated();
         } catch (error) {
             console.error("Erro ao finalizar ticket:", error);
-            alert("Houve um erro ao finalizar o ticket. Tente novamente.");
+            toast({
+                title: "Erro ao finalizar ticket",
+                description: "Houve um problema ao tentar finalizar o ticket. Tente novamente.",
+                variant: "destructive",
+            });
         }
     };
 
-    // Defina a cor da tag com base no status do ticket
     const getStatusTagColor = () => {
         if (finished) {
-            return "bg-gray-500"; // Ticket finalizado (cinza)
+            return "bg-gray-500";
         } else if (assignedTo) {
-            return "bg-yellow-500"; // Ticket atribuído (amarelo)
+            return "bg-yellow-500";
         } else {
-            return "bg-green-500"; // Ticket aberto (verde)
+            return "bg-green-500";
         }
     };
 
     return (
         <>
             <Card
-                className={`w-80 shadow-lg rounded-lg hover:shadow-xl transition-transform transform hover:scale-105 cursor-pointer mr-3.5 mt-3.5`}
+                className={`w-96 shadow-lg rounded-lg hover:shadow-xl transition-transform transform hover:scale-105 cursor-pointer mr-3.5 mt-3.5`}
                 onClick={openModal}
             >
                 <CardHeader className="flex flex-row justify-between items-center">
@@ -117,7 +132,7 @@ export function TicketCard({
                 </CardContent>
 
                 <CardFooter className="flex justify-between items-center">
-                <p className="text-sm text-gray-500 mt-2">
+                    <p className="text-sm text-gray-500 mt-2">
                         <strong>Data/Hora do chamado:</strong><br/>
                         {new Date(createdAt).toLocaleString()}
                     </p>
@@ -137,6 +152,9 @@ export function TicketCard({
                         <p className="text-sm text-gray-700">
                             <strong>Responsável:</strong> {assignedTo ? assignedTo.fullName : "Não atribuído"}
                         </p>
+                        <p className="text-sm text-gray-700">
+                            <strong>Solução:</strong> {notes ? notes : "Sem anotações."}
+                        </p>
                         <p className="text-sm text-gray-500 mt-2">
                             <strong>Data/Hora do chamado:</strong> {new Date(createdAt).toLocaleString()}
                         </p>
@@ -146,21 +164,25 @@ export function TicketCard({
                             </p>
                         )}
 
-                        {/* Mostrar botão Atribuir Responsável apenas se o usuário for admin */}
                         {isAdmin && !assignedTo && (
                             <div className="mt-4">
                                 <button
                                     onClick={assignResponsible}
                                     className="mt-2 bg-gray-800 text-white rounded px-4 py-2 hover:bg-gray-500"
                                 >
-                                    Atribuir Responsável
+                                    Atender ticket
                                 </button>
                             </div>
                         )}
 
-                        {/* Exibir botão de finalizar apenas se o usuário logado for o responsável */}
                         {assignedTo?.id === loggedInUserId && !finished && (
                             <div className="mt-4">
+                                <textarea
+                                    className="w-full p-2 border border-gray-300 rounded mb-2"
+                                    placeholder="Descreva a solução do problema"
+                                    value={solutionNotes}
+                                    onChange={(e) => setSolutionNotes(e.target.value)}
+                                />
                                 <button
                                     onClick={finalizeTicket}
                                     className="mt-2 bg-red-600 text-white rounded px-4 py-2 hover:bg-red-500"

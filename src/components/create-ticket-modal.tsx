@@ -12,6 +12,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { createTicket } from "../services/ticketService"; // Ajuste o caminho conforme necessário
 import { Ticket } from "../services/ticketService.ts"; // Ajuste o caminho de importação conforme necessário
+import { useToast } from "@/hooks/use-toast"; // Importando o hook useToast
 
 interface CreateTicketModalProps {
     isOpen: boolean;
@@ -24,6 +25,7 @@ export const CreateTicketModal: React.FC<CreateTicketModalProps> = ({
                                                                         onClose,
                                                                         onTicketCreated,
                                                                     }) => {
+    const { toast } = useToast(); // Usando o hook useToast para mostrar notificações
     const [problemDescription, setProblemDescription] = useState("");
     const token = localStorage.getItem("token");
     if (!token) return;
@@ -32,12 +34,21 @@ export const CreateTicketModal: React.FC<CreateTicketModalProps> = ({
         e.preventDefault();
         try {
             const newTicket = await createTicket(problemDescription, token);
-            console.log(newTicket)
-            onTicketCreated(newTicket); // Notifica o componente pai
+            onTicketCreated(newTicket);
+            toast({
+                title: "Ticket criado com sucesso!",
+                description: `O ticket foi criado com a descrição: ${problemDescription}.`,
+                variant: "default",
+            });
             setProblemDescription(""); // Limpa o campo após a criação
             onClose(); // Fecha o modal
         } catch (error) {
             console.error("Erro ao criar ticket:", error);
+            toast({
+                title: "Erro ao criar ticket",
+                description: "Por favor, verifique os dados e tente novamente.",
+                variant: "destructive",
+            });
         }
     };
 

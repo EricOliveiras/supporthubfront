@@ -1,15 +1,16 @@
 import apiClient from '../api/apiClient';
 
-type UserRequest = {
+export type UserRequest = {
     fullName: string;
     email: string;
     password: string;
     sectorId: number;
     isAdmin: boolean;
+    isActive: boolean;
     roleId: number;
 }
 
-type UserResponse = {
+export type UserResponse = {
     user: {
         id: number;
         fullName: string;
@@ -108,4 +109,18 @@ export const updateUser = async (id: number, data: UserRequest, token: string): 
         throw error;
     }
 };
+
+export const deleteUser = async (id: number, token: string): Promise<void> => {
+    try {
+        await apiClient.put<UserResponse>(`/users/delete/${id}`, {}, {
+            headers: {
+                Authorization: `Bearer ${token}`
+            }
+        });
+    } catch (error) {
+        console.error(`Erro ao atualizar o usuário com ID ${id}:`, error);
+        throw error;
+    }
+};
+
 
