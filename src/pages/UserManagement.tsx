@@ -127,8 +127,8 @@ export function UserManagement() {
 
     return (
         <SidebarProvider>
+            <AppSidebar/>
             <div className="flex h-screen w-screen">
-                <AppSidebar/>
 
                 <div className="flex-1 p-4 w-full overflow-auto">
                     <div className="flex justify-between items-center mb-4 space-x-8">
