@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { LogOut, Home, User, Settings } from "lucide-react";
+import { LogOut, Home, User, Settings, ChartNoAxesCombined } from "lucide-react";
 import {
     Sidebar,
     SidebarContent,
@@ -8,7 +8,7 @@ import {
     SidebarGroupLabel,
     SidebarMenu,
     SidebarMenuButton,
-    SidebarMenuItem, SidebarTrigger,
+    SidebarMenuItem,
 } from "@/components/ui/sidebar";
 import { me } from "@/services/userService";
 
@@ -48,6 +48,11 @@ export function AppSidebar() {
             url: "/configuracoes",
             icon: Settings,
         },
+        ...(isAdmin ? [{
+            title: "Estastiticas",
+            url: "/stats",
+            icon: ChartNoAxesCombined,
+        }] : []),
         {
             title: "Sair",
             url: "/login",
