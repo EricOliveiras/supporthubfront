@@ -6,10 +6,10 @@ import { Input } from "@/components/ui/input.tsx";
 import { Button } from "@/components/ui/button.tsx";
 import { AppSidebar } from "@/components/app-sidebar.tsx";
 import { SidebarProvider } from "@/components/ui/sidebar.tsx";
-import { useToast } from "@/hooks/use-toast"; // Importando o hook useToast
+import { useToast } from "@/hooks/use-toast";
 
 export function SettingsPage() {
-    const { toast } = useToast(); // Usando o hook useToast
+    const { toast } = useToast();
     const [user, setUser] = useState({
         id: 0,
         fullName: "",
@@ -41,7 +41,7 @@ export function SettingsPage() {
                 });
             } catch (error) {
                 console.error("Erro ao carregar dados do usuário:", error);
-                toast({ // Adicionando toast de erro ao carregar dados do usuário
+                toast({
                     title: "Erro ao Carregar Dados",
                     description: "Houve um problema ao carregar suas informações.",
                     variant: "destructive",
@@ -62,7 +62,6 @@ export function SettingsPage() {
         const token = localStorage.getItem("token");
         if (!token) return;
 
-        // Verifica se a nova senha e a confirmação são iguais
         if (user.password && user.password !== user.confirmPassword) {
             alert("As senhas não coincidem.");
             setLoading(false);
@@ -72,11 +71,10 @@ export function SettingsPage() {
         try {
             const { id, confirmPassword, ...userWithoutId } = user;
 
-            // Adiciona o setor e o tipo de usuário ao objeto a ser enviado
             const userDataToUpdate = {
                 ...userWithoutId,
-                sectorId: user.isAdmin ? user.sectorId : user.sectorId, // Apenas envie o setor se for admin
-                roleId: user.isAdmin ? user.roleId : user.roleId // Apenas envie o tipo se for admin
+                sectorId: user.isAdmin ? user.sectorId : user.sectorId,
+                roleId: user.isAdmin ? user.roleId : user.roleId
             };
 
             await updateUser(id, userDataToUpdate, token);
