@@ -1,10 +1,10 @@
-import { useEffect, useState } from "react";
-import { SidebarProvider } from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/app-sidebar";
-import { me } from "../services/userService.ts";
-import { findAllTickets, findTicketsByUserId } from "../services/ticketService.ts";
-import { TicketCard } from "@/components/ticket-card.tsx";
-import { CreateTicketModal } from "@/components/create-ticket-modal.tsx";
+import {useEffect, useState} from "react";
+import {SidebarProvider} from "@/components/ui/sidebar";
+import {AppSidebar} from "@/components/app-sidebar";
+import {me} from "../services/userService";
+import {findAllTickets, findTicketsByUserId} from "../services/ticketService";
+import {TicketCard} from "@/components/ticket-card";
+import {CreateTicketModal} from "@/components/create-ticket-modal";
 import {
     Pagination,
     PaginationContent,
@@ -13,9 +13,8 @@ import {
     PaginationNext,
     PaginationPrevious,
 } from "@/components/ui/pagination";
-import { connectSocket } from "@/config/socket.ts";
-import { Socket } from "socket.io-client";
-import { useToast } from "@/hooks/use-toast"; // Importando o hook useToast
+import {useToast} from "@/hooks/use-toast";
+import {useSocket} from "@/config/SocketContext.tsx";
 
 const ITEMS_PER_PAGE = 12;
 
@@ -74,10 +73,9 @@ const getTickets = (tickets: Ticket[]): TicketsState => {
     };
 };
 
-let socket: Socket;
-
 export function Dashboard() {
-    const { toast } = useToast(); // Usando o hook useToast
+    const {toast} = useToast();
+    const {socket} = useSocket();
     const [loggedInUser, setLoggedInUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
     const [tickets, setTickets] = useState<TicketsState>({
@@ -95,6 +93,9 @@ export function Dashboard() {
     const currentTickets = tickets[`${activeTab === 'open' ? 'openTickets' : activeTab === 'progress' ? 'assignedTickets' : 'closedTickets'}`];
     const paginatedTickets = currentTickets.slice(startIndex, endIndex);
 
+    // Número de tickets abertos
+    const openTicketsCount = tickets.openTickets.length;
+
     const handlePageChange = (page: number) => {
         if (page > 0 && page <= Math.ceil(currentTickets.length / ITEMS_PER_PAGE)) {
             setCurrentPage(page);
@@ -102,78 +103,8 @@ export function Dashboard() {
     };
 
     useEffect(() => {
-        const token = localStorage.getItem('token');
-        if (!socket) {
-            socket = connectSocket();
-        }
-
-        socket.on('ticketCreated', async (newTicket) => {
-            setTickets(prevTickets => ({
-                ...prevTickets,
-                openTickets: [...prevTickets.openTickets, newTicket]
-            }));
-            toast({
-                title: "Novo Ticket!",
-                description: "Um novo ticket foi criado.",
-                variant: "default",
-            });
-            await onTicketUpdated();
-        });
-
-        socket.on('ticketUpdated', async (updatedTicket) => {
-            setTickets(prevTickets => {
-                const updatedOpenTickets = prevTickets.openTickets.map(ticket =>
-                    ticket.id === updatedTicket.id ? updatedTicket : ticket
-                );
-
-                // Verifica se o usuário logado é o dono do ticket
-                if (updatedTicket.userId === loggedInUser?.id) {
-                    let message;
-                    if (updatedTicket.finished) {
-                        message = `Seu ticket "${updatedTicket.problemDescription}" foi finalizado.`;
-                    } else {
-                        message = `Seu ticket "${updatedTicket.problemDescription}" foi atualizado.`;
-                    }
-
-                    toast({
-                        title: updatedTicket.finished ? "Ticket Finalizado!" : "Ticket Atualizado!",
-                        description: message,
-                        variant: "default",
-                    });
-                }
-
-                return {
-                    ...prevTickets,
-                    openTickets: updatedOpenTickets
-                };
-            });
-            await onTicketUpdated();
-        });
-
-        socket.on('assignedTicket', async (assignedTicket) => {
-            setTickets(prevTickets => {
-                const openTickets = prevTickets.openTickets.filter(ticket => ticket.id !== assignedTicket.id);
-                const assignedTickets = [...prevTickets.assignedTickets, assignedTicket];
-
-                // Verifica se o usuário logado é o dono do ticket
-                if (assignedTicket.userId === loggedInUser?.id) {
-                    toast({
-                        title: "Ticket Atribuído!",
-                        description: `Seu ticket "${assignedTicket.problemDescription}" foi atribuído a alguém.`,
-                        variant: "default",
-                    });
-                }
-
-                return {
-                    ...prevTickets,
-                    openTickets,
-                    assignedTickets
-                };
-            });
-            await onTicketUpdated();
-        });
-
         const fetchUserData = async () => {
+            const token = localStorage.getItem('token');
             if (!token) return;
 
             try {
@@ -187,7 +118,7 @@ export function Dashboard() {
                 }
             } catch (error) {
                 console.error("Erro ao buscar usuário logado:", error);
-                toast({ // Adicionando toast de erro ao buscar usuário
+                toast({
                     title: "Erro ao Buscar Usuário",
                     description: "Houve um problema ao carregar suas informações.",
                     variant: "destructive",
@@ -198,12 +129,34 @@ export function Dashboard() {
         };
 
         fetchUserData();
-        return () => {
-            socket.off("ticketUpdated");
-            socket.off("ticketCreated");
-            socket.off("assignedTicket");
-        };
     }, []);
+
+    useEffect(() => {
+        if (!socket) return;
+
+        const handleTicketCreated = async (newTicket: Ticket) => {
+            setTickets((prevTickets) => ({
+                ...prevTickets,
+                openTickets: [...prevTickets.openTickets, newTicket],
+            }));
+            toast({
+                title: "Novo Ticket!",
+                description: `Ticket "${newTicket.problemDescription}" foi criado.`,
+                variant: "default",
+            });
+            await onTicketUpdated();
+        };
+
+        socket.on("ticketCreated", handleTicketCreated);
+
+        return () => {
+            socket.off("ticketCreated", handleTicketCreated);
+        };
+    }, [socket, toast]);
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [activeTab]);
 
     const onTicketUpdated = async () => {
         const token = localStorage.getItem('token');
@@ -217,7 +170,7 @@ export function Dashboard() {
             setTickets(getTickets(updatedTickets));
         } catch (error) {
             console.error("Erro ao atualizar tickets:", error);
-            toast({ // Adicionando toast de erro ao atualizar tickets
+            toast({
                 title: "Erro ao Atualizar Tickets",
                 description: "Houve um problema ao atualizar os tickets.",
                 variant: "destructive",
@@ -234,11 +187,7 @@ export function Dashboard() {
             ...prevTickets,
             openTickets: [...prevTickets.openTickets, newTicket],
         }));
-        toast({ // Adicionando toast de sucesso quando um ticket é criado
-            title: "Ticket Criado!",
-            description: "Seu novo ticket foi criado com sucesso.",
-            variant: "default",
-        });
+        onTicketUpdated();
     };
 
     const isAdmin = loggedInUser?.isAdmin;
@@ -249,13 +198,12 @@ export function Dashboard() {
 
     return (
         <SidebarProvider>
+            <AppSidebar/>
             <div className="flex h-screen w-screen">
-                <AppSidebar/>
-
-                <div className="flex-1 p-4 w-full overflow-auto">
-                    <div className="flex justify-between items-center mb-4 space-x-8">
+                <div className="flex-1 p-4 w-full flex flex-col">
+                    <div className="flex justify-between items-center mb-4">
                         <h2 className="text-2xl font-semibold">Seja bem-vindo(a) {loggedInUser?.fullName}</h2>
-                        {!isAdmin && (
+                        {!loggedInUser?.isAdmin && (
                             <button
                                 onClick={handleCreateNewTicket}
                                 className="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600"
@@ -270,13 +218,20 @@ export function Dashboard() {
                         />
                     </div>
 
-                    <div className="mt-4">
+                    <div className="flex-grow mt-4">
                         <div className="flex space-x-4 mb-4">
                             <button
                                 onClick={() => setActiveTab('open')}
-                                className={`py-2 px-4 rounded ${activeTab === 'open' ? 'bg-green-500 text-white' : 'bg-gray-200'}`}
+                                className={`relative py-2 px-4 rounded ${activeTab === 'open' ? 'bg-green-500 text-white' : 'bg-gray-200'}`}
                             >
                                 Tickets Abertos
+                                {openTicketsCount > 0 && loggedInUser?.isAdmin && (
+                                    <span
+                                        className="absolute top-0 right-0 transform translate-x-1/2 -translate-y-1/2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center"
+                                    >
+                                        {openTicketsCount}
+                                    </span>
+                                )}
                             </button>
                             <button
                                 onClick={() => setActiveTab('progress')}
@@ -292,58 +247,70 @@ export function Dashboard() {
                             </button>
                         </div>
 
-                        <div>
-                            <h3 className="text-lg font-semibold">
-                                {activeTab === 'open' ? 'Tickets Abertos' : activeTab === 'progress' ? 'Tickets Em Progresso' : 'Tickets Finalizados'}
-                            </h3>
-                            <div className="flex-row flex flex-wrap">
-                                {paginatedTickets.length === 0 ? (
-                                    <p className="text-gray-500">Nenhum ticket encontrado.</p>
-                                ) : (
-                                    paginatedTickets.map((ticket, index) => (
-                                        <TicketCard
-                                            key={`${ticket.id}-${index}`}
-                                            id={ticket.id}
-                                            requester={ticket.requester}
-                                            problemDescription={ticket.problemDescription}
-                                            assignedTo={ticket.assignedTo}
-                                            finished={ticket.finished}
-                                            notes={ticket.notes}
-                                            createdAt={ticket.createdAt}
-                                            updatedAt={ticket.updatedAt}
-                                            loggedInUserId={loggedInUser!.id}
-                                            isAdmin={isAdmin as boolean}
-                                            onTicketUpdated={onTicketUpdated}
-                                            Sector={{name: ticket.Sector?.name ?? ""}}
-                                        />
-                                    ))
-                                )}
-                            </div>
-
-                            {currentTickets.length >= 12 && ( // Condição para exibir a paginação
-                                <Pagination className="mt-8">
-                                    <PaginationPrevious
-                                        className={`hover:cursor-pointer ${currentPage === 1 ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                        onClick={() => currentPage > 1 && handlePageChange(currentPage - 1)}>
-                                        Anterior
-                                    </PaginationPrevious>
-                                    <PaginationContent className="hover:cursor-pointer">
-                                        {Array.from({length: Math.ceil(currentTickets.length / ITEMS_PER_PAGE)}, (_, i) => (
-                                            <PaginationItem key={i + 1}>
-                                                <PaginationLink
-                                                    className={`py-2 px-4 rounded ${currentPage === i + 1 ? 'bg-slate-400 text-white' : 'bg-gray-200'}`}
-                                                    onClick={() => handlePageChange(i + 1)}>{i + 1}</PaginationLink>
-                                            </PaginationItem>
-                                        ))}
-                                    </PaginationContent>
-                                    <PaginationNext
-                                        className={`hover:cursor-pointer ${currentPage === Math.ceil(currentTickets.length / ITEMS_PER_PAGE) ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                        onClick={() => currentPage < Math.ceil(currentTickets.length / ITEMS_PER_PAGE) && handlePageChange(currentPage + 1)}>
-                                        Próximo
-                                    </PaginationNext>
-                                </Pagination>
+                        <div className="flex flex-wrap">
+                            {paginatedTickets.length === 0 ? (
+                                <p className="text-gray-500">Nenhum ticket encontrado.</p>
+                            ) : (
+                                paginatedTickets.map((ticket, index) => (
+                                    <TicketCard
+                                        key={`${ticket.id}-${index}`}
+                                        id={ticket.id}
+                                        requester={ticket.requester}
+                                        problemDescription={ticket.problemDescription}
+                                        assignedTo={ticket.assignedTo}
+                                        finished={ticket.finished}
+                                        notes={ticket.notes}
+                                        createdAt={ticket.createdAt}
+                                        updatedAt={ticket.updatedAt}
+                                        loggedInUserId={loggedInUser!.id}
+                                        isAdmin={isAdmin as boolean}
+                                        onTicketUpdated={onTicketUpdated}
+                                        Sector={{name: ticket.Sector?.name ?? ""}}
+                                    />
+                                ))
                             )}
                         </div>
+                    </div>
+
+                    <div className="mt-4">
+                        {currentTickets.length > ITEMS_PER_PAGE && (
+                            <Pagination className="flex justify-center">
+                                <PaginationPrevious
+                                    className={`cursor-pointer ${currentPage === 1 ? 'cursor-not-allowed text-gray-400' : ''}`}
+                                    onClick={() => {
+                                        if (currentPage > 1) handlePageChange(currentPage - 1);
+                                    }}
+                                >
+                                    Anterior
+                                </PaginationPrevious>
+                                <PaginationContent>
+                                    {Array.from(
+                                        {length: Math.ceil(currentTickets.length / ITEMS_PER_PAGE)},
+                                        (_, i) => (
+                                            <PaginationItem key={i + 1}>
+                                                <PaginationLink
+                                                    className="cursor-pointer"
+                                                    onClick={() => handlePageChange(i + 1)}
+                                                    isActive={currentPage === i + 1}
+                                                >
+                                                    {i + 1}
+                                                </PaginationLink>
+                                            </PaginationItem>
+                                        )
+                                    )}
+                                </PaginationContent>
+                                <PaginationNext
+                                    className={`cursor-pointer ${currentPage === Math.ceil(currentTickets.length / ITEMS_PER_PAGE) ? 'cursor-not-allowed text-gray-400' : ''}`}
+                                    onClick={() => {
+                                        if (currentPage < Math.ceil(currentTickets.length / ITEMS_PER_PAGE)) {
+                                            handlePageChange(currentPage + 1);
+                                        }
+                                    }}
+                                >
+                                    Próximo
+                                </PaginationNext>
+                            </Pagination>
+                        )}
                     </div>
                 </div>
             </div>
