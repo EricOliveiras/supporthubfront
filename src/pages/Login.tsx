@@ -15,7 +15,6 @@ export const LoginPage = () => {
     const [error, setError] = useState(false);
     const navigate = useNavigate();
 
-    // Verifica se o usuário já está autenticado e redireciona para o dashboard
     useEffect(() => {
         const checkAuth = async () => {
             const token = localStorage.getItem("token");
