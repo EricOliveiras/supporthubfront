@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { SECTORS } from "@/pages/UserManagement.tsx";
 import { deleteUser, updateUser } from "@/services/userService.ts";
-import { useToast } from "@/hooks/use-toast"; // Importando o hook useToast
+import { useToast } from "@/hooks/use-toast";
 
 type UserCardProps = {
     id: number;
@@ -29,7 +29,7 @@ export function UserCard({
                              Sector,
                              onUserUpdated
                          }: UserCardProps) {
-    const { toast } = useToast(); // Usando o hook useToast para mostrar notificações
+    const { toast } = useToast();
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [loading, setLoading] = useState(false);
