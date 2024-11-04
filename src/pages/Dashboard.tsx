@@ -168,6 +168,7 @@ export function Dashboard() {
 
             const updatedTickets = user.isAdmin ? await findAllTickets(token) : await findTicketsByUserId(token);
             setTickets(getTickets(updatedTickets));
+            onTicketUpdated();
         } catch (error) {
             console.error("Erro ao atualizar tickets:", error);
             toast({
