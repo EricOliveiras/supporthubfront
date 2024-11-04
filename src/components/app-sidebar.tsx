@@ -68,7 +68,7 @@ export function AppSidebar() {
         <Sidebar>
             <SidebarContent>
                 <SidebarGroup>
-                    <SidebarGroupLabel>SupportHub</SidebarGroupLabel>
+                    <SidebarGroupLabel>Painel de Chamados - SEMAD</SidebarGroupLabel>
                     <SidebarGroupContent>
                         <SidebarMenu>
                             {items.map((item) => (

@@ -21,14 +21,17 @@ const ITEMS_PER_PAGE = 12;
 export const SECTORS: Sector[] = [
     {id: 0, name: "Todos"},
     {id: 1, name: "SEMAD-DAL"},
-    {id: 2, name: "SEMAD-DTI"},
-    {id: 3, name: "SEMAD-DGP"},
-    {id: 4, name: "SEMAD-DSO"},
-    {id: 5, name: "SEMAD-EGPA"},
-    {id: 6, name: "SEMAD-GAB"},
-    {id: 7, name: "SEMAD-NUCOM"},
-    {id: 8, name: "SEMAD-NUJUR"},
-    {id: 9, name: "SEMAD-SA"},
+    {id: 2, name: "SEMAD-DDG"},
+    {id: 3, name: "SEMAD-DTI"},
+    {id: 4, name: "SEMAD-DGP"},
+    {id: 5, name: "SEMAD-DSO"},
+    {id: 6, name: "SEMAD-EGPA"},
+    {id: 7, name: "SEMAD-GAB"},
+    {id: 8, name: "SEMAD-NUCOM"},
+    {id: 9, name: "SEMAD-NUCONT"},
+    {id: 10, name: "SEMAD-NUJUR"},
+    {id: 11, name: "SEMAD-NUPLAN"},
+    {id: 12, name: "SEMAD-SA"},
 ];
 
 type User = {

@@ -33,14 +33,11 @@ export function UserSectorSelect({
                                      users,
                                      onSelectUsers,
                                  }: UserSectorSelectProps) {
-    // Estado para o setor selecionado
     const [selectedSector, setSelectedSector] = React.useState<string | null>(null);
 
-    // Função para atualizar o setor selecionado e filtrar os usuários
     const handleSelectChange = (sectorId: string) => {
         setSelectedSector(sectorId);
         if (sectorId === "0") {
-            // "0" representa "Todos" e deve retornar todos os usuários
             onSelectUsers(users);
         } else {
             const filteredUsers = users.filter(user => user.sectorId === Number(sectorId));

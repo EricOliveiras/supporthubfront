@@ -47,7 +47,7 @@ export function StatisticsPage() {
             setSectorsData(sectors);
             setTypesData(types);
         } catch (error) {
-            console.error("Erro ao buscar estatísticas de tickets:", error);
+            console.error("Erro ao buscar estatísticas de chamados:", error);
         }
     };
 
@@ -60,7 +60,7 @@ export function StatisticsPage() {
             <AppSidebar/>
             <div className="flex-1 grid grid-cols-1 gap-6 p-6 bg-white min-h-screen">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
-                    <ChartContainer title="Tickets por Setor">
+                    <ChartContainer title="Chamados por Setor">
                         <PieChart>
                             <Pie
                                 data={sectorsData}
@@ -73,13 +73,13 @@ export function StatisticsPage() {
                                 {sectorsData.map((entry, index) => (
                                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]}/>
                                 ))}
-                                <Label value="Tickets" position="center"/>
+                                <Label value="Chamados" position="center"/>
                             </Pie>
-                            <Tooltip formatter={(value, name) => [`${value} Tickets`, `Setor: ${name}`]}/>
+                            <Tooltip formatter={(value, name) => [`${value} Chamados`, `Setor: ${name}`]}/>
                         </PieChart>
                     </ChartContainer>
 
-                    <ChartContainer title="Tickets por Tipo">
+                    <ChartContainer title="Chamados por Tipo">
                         <BarChart data={typesData}>
                             <CartesianGrid strokeDasharray="3 3"/>
                             <XAxis dataKey="type"/>
@@ -101,7 +101,7 @@ export function StatisticsPage() {
                         </CardHeader>
                         <CardContent>
                             <div className="text-4xl font-bold text-center">{totalTickets}</div>
-                            <div className="text-center text-muted-foreground">Total de tickets no período selecionado
+                            <div className="text-center text-muted-foreground">Chamados
                             </div>
                         </CardContent>
                     </Card>

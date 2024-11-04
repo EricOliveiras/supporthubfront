@@ -12,8 +12,8 @@ import { Label } from "@/components/ui/label";
 import { createTicket } from "../services/ticketService";
 import { Ticket } from "../services/ticketService.ts";
 import { useToast } from "@/hooks/use-toast";
-import { findAllTicketTypes } from "../services/ticketTypeService"; // Importa a função para buscar tipos de ticket
-import { TicketType } from "../services/ticketTypeService"; // Importa o tipo TicketType
+import { findAllTicketTypes } from "../services/ticketTypeService";
+import { TicketType } from "../services/ticketTypeService";
 
 interface CreateTicketModalProps {
     isOpen: boolean;
@@ -39,10 +39,10 @@ export const CreateTicketModal: React.FC<CreateTicketModalProps> = ({
             const types = await findAllTicketTypes(token);
             setTicketTypes(types);
         } catch (error) {
-            console.error("Erro ao buscar tipos de ticket:", error);
+            console.error("Erro ao buscar tipos de chamados:", error);
             toast({
-                title: "Erro ao buscar tipos de ticket",
-                description: "Não foi possível carregar os tipos de ticket.",
+                title: "Erro ao buscar tipos de chamado",
+                description: "Não foi possível carregar os tipos de chamados.",
                 variant: "destructive",
             });
         }
@@ -58,13 +58,13 @@ export const CreateTicketModal: React.FC<CreateTicketModalProps> = ({
 
         try {
             if (ticketTypeId === null) {
-                throw new Error("O ID do tipo de ticket não está definido.");
+                throw new Error("O ID do tipo de chamado não está definido.");
             }
             const newTicket = await createTicket(descriptionToSubmit, ticketTypeId, token);
             onTicketCreated(newTicket);
             toast({
-                title: "Ticket criado com sucesso!",
-                description: `O ticket foi criado com a descrição: ${descriptionToSubmit}.`,
+                title: "Chamado criado com sucesso!",
+                description: `O Chamado foi criado com a descrição: ${descriptionToSubmit}.`,
                 variant: "default",
             });
             setSelectedProblem("");
@@ -72,9 +72,9 @@ export const CreateTicketModal: React.FC<CreateTicketModalProps> = ({
             setTicketTypeId(null);
             onClose();
         } catch (error) {
-            console.error("Erro ao criar ticket:", error);
+            console.error("Erro ao criar chamado:", error);
             toast({
-                title: "Erro ao criar ticket",
+                title: "Erro ao criar chamado",
                 description: "Por favor, verifique os dados e tente novamente.",
                 variant: "destructive",
             });
@@ -85,7 +85,7 @@ export const CreateTicketModal: React.FC<CreateTicketModalProps> = ({
         <Dialog open={isOpen} onOpenChange={onClose}>
             <DialogContent className="sm:max-w-[500px]">
                 <DialogHeader>
-                    <DialogTitle>Criar Novo Ticket</DialogTitle>
+                    <DialogTitle>Criar Novo Chamado</DialogTitle>
                     <DialogDescription>
                         Selecione o assunto do problema que você gostaria de relatar.
                     </DialogDescription>
@@ -136,7 +136,7 @@ export const CreateTicketModal: React.FC<CreateTicketModalProps> = ({
                         <Button type="button" variant="outline" onClick={onClose}>
                             Cancelar
                         </Button>
-                        <Button type="submit">Criar Ticket</Button>
+                        <Button type="submit">Criar Chamado</Button>
                     </DialogFooter>
                 </form>
             </DialogContent>

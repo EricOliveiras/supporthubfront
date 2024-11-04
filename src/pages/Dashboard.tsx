@@ -209,7 +209,7 @@ export function Dashboard() {
                                 onClick={handleCreateNewTicket}
                                 className="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600"
                             >
-                                Criar Novo Ticket
+                                Novo Chamado
                             </button>
                         )}
                         <CreateTicketModal
@@ -225,7 +225,7 @@ export function Dashboard() {
                                 onClick={() => setActiveTab('open')}
                                 className={`relative py-2 px-4 rounded ${activeTab === 'open' ? 'bg-green-500 text-white' : 'bg-gray-200'}`}
                             >
-                                Tickets Abertos
+                                Chamados Abertos
                                 {openTicketsCount > 0 && loggedInUser?.isAdmin && (
                                     <span
                                         className="absolute top-0 right-0 transform translate-x-1/2 -translate-y-1/2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center"
@@ -250,7 +250,7 @@ export function Dashboard() {
 
                         <div className="flex flex-wrap">
                             {paginatedTickets.length === 0 ? (
-                                <p className="text-gray-500">Nenhum ticket encontrado.</p>
+                                <p className="text-gray-500">Nenhum chamado encontrado.</p>
                             ) : (
                                 paginatedTickets.map((ticket, index) => (
                                     <TicketCard

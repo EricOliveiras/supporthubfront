@@ -2,7 +2,7 @@ import {useState} from "react";
 import {Card, CardHeader, CardFooter, CardContent} from "@/components/ui/card";
 import {Dialog, DialogContent, DialogTitle, DialogDescription, DialogFooter} from "@/components/ui/dialog";
 import {assignTicket, updateTicket} from "@/services/ticketService.ts";
-import {useToast} from "@/hooks/use-toast"; // Importando o hook do toast
+import {useToast} from "@/hooks/use-toast";
 
 type TicketCardProps = {
     id: number;
@@ -118,7 +118,7 @@ export function TicketCard({
                 onClick={openModal}
             >
                 <CardHeader className="flex flex-row justify-between items-center">
-                    <h3 className="text-xl font-semibold">Ticket #{id}</h3>
+                    <h3 className="text-xl font-semibold">{problemDescription}</h3>
                     <span className={`px-2 py-1 rounded text-white ${getStatusTagColor()}`}>
                         {finished ? "Finalizado" : assignedTo ? "Em progresso" : "Aberto"}
                     </span>
@@ -141,10 +141,13 @@ export function TicketCard({
 
             <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
                 <DialogContent aria-labelledby="ticket-details" aria-describedby="ticket-description">
-                    <DialogTitle id="ticket-details">Ticket #{id} - Detalhes</DialogTitle>
+                    <DialogTitle id="ticket-details">Detalhes do chamado:</DialogTitle>
                     <DialogDescription id="ticket-description">
                         <p className="text-sm text-gray-700">
                             <strong>Solicitante:</strong> {requester}
+                        </p>
+                        <p className="text-sm text-gray-700">
+                            <strong>Setor:</strong> {Sector?.name}
                         </p>
                         <p className="text-sm text-gray-700">
                             <strong>Descrição:</strong> {problemDescription}
@@ -170,7 +173,7 @@ export function TicketCard({
                                     onClick={assignResponsible}
                                     className="mt-2 bg-gray-800 text-white rounded px-4 py-2 hover:bg-gray-500"
                                 >
-                                    Atender ticket
+                                    Atender chamado
                                 </button>
                             </div>
                         )}
@@ -187,7 +190,7 @@ export function TicketCard({
                                     onClick={finalizeTicket}
                                     className="mt-2 bg-red-600 text-white rounded px-4 py-2 hover:bg-red-500"
                                 >
-                                    Finalizar Ticket
+                                    Finalizar chamado
                                 </button>
                             </div>
                         )}
