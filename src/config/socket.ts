@@ -1,6 +1,6 @@
 import { io, Socket } from "socket.io-client";
 
-const URL = "http://localhost:3333";
+const URL = import.meta.env.VITE_SERVER_URL;
 let socket: Socket | null = null;
 
 export const connectSocket = (): Socket => {
