@@ -33,16 +33,15 @@ function ChartContainer({title, children}: { title: string; children: React.Reac
 export function StatisticsPage() {
     const [sectorsData, setSectorsData] = React.useState<{ sectorId: number; count: number }[]>([]);
     const [typesData, setTypesData] = React.useState<{ type: string; count: number }[]>([]);
-    const [totalTickets, setTotalTickets] = React.useState(0);
-    const [selectedPeriod, setSelectedPeriod] = React.useState("daily"); // Exemplo de período inicial
+    const [totalTickets, setTotalTickets] = React.useState(0); // Exemplo de período inicial
 
-    const fetchData = async (period: string) => {
+    const fetchData = async () => {
         const token = localStorage.getItem("token");
         if (!token) return;
         try {
-            const total = await getTotalTickets(token, period);
-            const sectors = await getTicketsBySector(token, period);
-            const types = await getTicketsByType(token, period);
+            const total = await getTotalTickets(token);
+            const sectors = await getTicketsBySector(token);
+            const types = await getTicketsByType(token);
 
             setTotalTickets(total);
             setSectorsData(sectors);
@@ -53,12 +52,12 @@ export function StatisticsPage() {
     };
 
     React.useEffect(() => {
-        fetchData(selectedPeriod);
-    }, [selectedPeriod]);
+        fetchData();
+    }, []);
 
     return (
         <SidebarProvider>
-            <AppSidebar />
+            <AppSidebar/>
             <div className="flex-1 grid grid-cols-1 gap-6 p-6 bg-white min-h-screen">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
                     <ChartContainer title="Tickets por Setor">
@@ -69,26 +68,26 @@ export function StatisticsPage() {
                                 nameKey="sectorId"
                                 innerRadius={80}
                                 outerRadius={160}
-                                label={({ name }) => `${name}`}
+                                label={({name}) => `${name}`}
                             >
                                 {sectorsData.map((entry, index) => (
-                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]}/>
                                 ))}
-                                <Label value="Tickets" position="center" />
+                                <Label value="Tickets" position="center"/>
                             </Pie>
-                            <Tooltip formatter={(value, name) => [`${value} Tickets`, `Setor: ${name}`]} />
+                            <Tooltip formatter={(value, name) => [`${value} Tickets`, `Setor: ${name}`]}/>
                         </PieChart>
                     </ChartContainer>
 
                     <ChartContainer title="Tickets por Tipo">
                         <BarChart data={typesData}>
-                            <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="type" />
-                            <YAxis />
-                            <Tooltip />
+                            <CartesianGrid strokeDasharray="3 3"/>
+                            <XAxis dataKey="type"/>
+                            <YAxis/>
+                            <Tooltip/>
                             <Bar dataKey="count" fill={COLORS[0]}>
                                 {typesData.map((entry, index) => (
-                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]}/>
                                 ))}
                             </Bar>
                         </BarChart>
@@ -102,7 +101,8 @@ export function StatisticsPage() {
                         </CardHeader>
                         <CardContent>
                             <div className="text-4xl font-bold text-center">{totalTickets}</div>
-                            <div className="text-center text-muted-foreground">Total de tickets no período selecionado</div>
+                            <div className="text-center text-muted-foreground">Total de tickets no período selecionado
+                            </div>
                         </CardContent>
                     </Card>
                 </div>
