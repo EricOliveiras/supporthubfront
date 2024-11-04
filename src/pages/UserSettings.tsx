@@ -78,6 +78,7 @@ export function SettingsPage() {
                 roleId: user.isAdmin ? user.roleId : user.roleId
             };
 
+            // @ts-ignore
             await updateUser(id, userDataToUpdate, token);
             toast({
                 title: "Informações Atualizadas!",
