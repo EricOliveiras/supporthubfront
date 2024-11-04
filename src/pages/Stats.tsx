@@ -15,7 +15,7 @@ const COLORS = [
     "#A4DE02", "#D0ED57", "#a29bfe", "#fdcb6e", "#e17055"
 ];
 
-function ChartContainer({title, children}: { title: string; children: React.ReactNode }) {
+function ChartContainer({title, children}: { title: string; children: React.ReactElement }) {
     return (
         <Card className="col-span-1 w-full">
             <CardHeader>
@@ -70,7 +70,7 @@ export function StatisticsPage() {
                                 outerRadius={160}
                                 label={({name}) => `${name}`}
                             >
-                                {sectorsData.map((entry, index) => (
+                                {sectorsData.map((_entry, index) => (
                                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]}/>
                                 ))}
                                 <Label value="Chamados" position="center"/>
@@ -86,7 +86,7 @@ export function StatisticsPage() {
                             <YAxis/>
                             <Tooltip/>
                             <Bar dataKey="count" fill={COLORS[0]}>
-                                {typesData.map((entry, index) => (
+                                {typesData.map((_entry, index) => (
                                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]}/>
                                 ))}
                             </Bar>

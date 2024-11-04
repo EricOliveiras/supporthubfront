@@ -54,7 +54,14 @@ export const me = async (token: string): Promise<UserResponse['user']> => {
     }
 };
 
-export const create = async (data: UserRequest, token: string): Promise<UserResponse['user']> => {
+export const create = async (data: {
+    password: string;
+    sectorId: number;
+    roleId: number;
+    fullName: string;
+    isAdmin: boolean;
+    email: string
+}, token: string): Promise<UserResponse["user"]> => {
     try {
         const response = await apiClient.post<UserResponse>('/users', data, {
             headers: {
@@ -96,7 +103,14 @@ export const findUserById = async (id: number, token: string): Promise<UserRespo
     }
 };
 
-export const updateUser = async (id: number, data: UserRequest, token: string): Promise<UserResponse['user']> => {
+export const updateUser = async (id: number, data: {
+    password: string;
+    sectorId: number;
+    roleId: number;
+    fullName: string;
+    isAdmin: boolean;
+    email: string
+}, token: string): Promise<UserResponse["user"]> => {
     try {
         const response = await apiClient.put<UserResponse>(`/users/update/${id}`, data, {
             headers: {

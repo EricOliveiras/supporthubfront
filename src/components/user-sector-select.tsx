@@ -14,12 +14,21 @@ export type Sector = {
     name: string;
 };
 
-type User = {
+export type User = {
     id: number;
     fullName: string;
     email: string;
+    createdAt: string;
+    updatedAt: string;
+    roleId: number;
+    isActive: boolean;
+    isAdmin: boolean;
     sectorId: number;
+    Sector: {
+        name: string;
+    };
 };
+
 
 // Props para o componente
 type UserSectorSelectProps = {
@@ -33,7 +42,7 @@ export function UserSectorSelect({
                                      users,
                                      onSelectUsers,
                                  }: UserSectorSelectProps) {
-    const [selectedSector, setSelectedSector] = React.useState<string | null>(null);
+    const [, setSelectedSector] = React.useState<string | null>(null);
 
     const handleSelectChange = (sectorId: string) => {
         setSelectedSector(sectorId);

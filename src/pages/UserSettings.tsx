@@ -69,6 +69,7 @@ export function SettingsPage() {
         }
 
         try {
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
             const { id, confirmPassword, ...userWithoutId } = user;
 
             const userDataToUpdate = {

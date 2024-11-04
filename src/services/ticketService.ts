@@ -9,6 +9,7 @@ export type Ticket = {
     id: number;
     requester: string;
     problemDescription: string;
+    notes: string;
     finished: boolean;
     createdAt: string;
     updatedAt: string;
@@ -27,7 +28,7 @@ export type Ticket = {
         id: number;
         fullName: string;
     };
-    ticketType?: TicketType; // Adicionando ticketType aqui
+    ticketType?: TicketType;
 };
 
 export type TicketResponse = {

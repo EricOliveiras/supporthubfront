@@ -10,14 +10,14 @@ import {
 } from "@/components/ui/dialog";
 import {Input} from "@/components/ui/input";
 import {Label} from "@/components/ui/label";
-import {create} from "@/services/userService"; // Ajuste o caminho conforme necessário
-import {UserRequest} from "@/services/userService.ts"; // Ajuste o caminho de importação conforme necessário
-import {useToast} from "@/hooks/use-toast"; // Importando o hook useToast
+import {create} from "@/services/userService";
+import {UserRequest} from "@/services/userService.ts";
+import {useToast} from "@/hooks/use-toast";
 
 interface UserCreateModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onUserCreated: (user: UserRequest) => void; // Callback para atualizar a lista de usuários
+    onUserCreated: (user: UserRequest) => void;
 }
 
 const sectors = [
@@ -58,7 +58,7 @@ export const UserCreateModal: React.FC<UserCreateModalProps> = ({
             password,
             roleId,
             sectorId,
-            isAdmin: roleId === 1, // Define isAdmin com base no roleId
+            isAdmin: roleId === 1,
         };
 
         try {
@@ -70,12 +70,12 @@ export const UserCreateModal: React.FC<UserCreateModalProps> = ({
                 description: `O usuário ${newUser.fullName} foi criado.`,
                 variant: "default",
             });
-            setFullName(""); // Limpa o campo após a criação
+            setFullName("");
             setEmail("");
             setPassword("");
-            setRoleId(2); // Reseta para Usuário Normal
-            setSectorId(0); // Reseta para valor padrão
-            onClose(); // Fecha o modal
+            setRoleId(2);
+            setSectorId(0);
+            onClose();
         } catch (error) {
             console.error("Erro ao criar usuário:", error);
             toast({

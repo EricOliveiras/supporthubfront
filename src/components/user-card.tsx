@@ -102,6 +102,7 @@ export function UserCard({
         }
 
         try {
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
             const { confirmPassword, ...userWithoutId } = user;
 
             const userDataToUpdate = {
