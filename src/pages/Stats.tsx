@@ -1,103 +1,112 @@
-"use client"
+"use client";
 
-import * as React from "react"
-import {PieChart, Pie, Label, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid} from "recharts"
-import {Card, CardContent, CardHeader, CardTitle} from "@/components/ui/card"
-import {Select, SelectTrigger, SelectContent, SelectItem} from "@/components/ui/select"
-import {SidebarProvider} from "@/components/ui/sidebar.tsx";
-import {AppSidebar} from "@/components/app-sidebar.tsx";
+import * as React from "react";
+import {
+    PieChart, Pie, Label, BarChart, Bar, XAxis, YAxis, Tooltip,
+    CartesianGrid, Cell, ResponsiveContainer
+} from "recharts";
+import {Card, CardContent, CardHeader, CardTitle} from "@/components/ui/card";
+import {SidebarProvider} from "@/components/ui/sidebar";
+import {AppSidebar} from "@/components/app-sidebar";
+import {getTicketsBySector, getTicketsByType, getTotalTickets} from "@/services/ticketTypeService";
 
-// Dados de exemplo
-const periodos = ["Diário", "Semanal", "Mensal", "Bimestral", "Trimestral", "Semestral", "Anual"]
-const setoresData = [
-    {category: "Setor A", chamados: 275},
-    {category: "Setor B", chamados: 200},
-    {category: "Setor C", chamados: 287},
-]
-const tiposData = [
-    {tipo: "Troca de Equipamento", chamados: 150},
-    {tipo: "Problemas com Sistema", chamados: 180},
-    {tipo: "Recuperação de Senha", chamados: 180},
-    {tipo: "Outro", chamados: 120},
-]
+const COLORS = [
+    "#FF8042", "#0088FE", "#00C49F", "#FFBB28", "#FF4444",
+    "#A4DE02", "#D0ED57", "#a29bfe", "#fdcb6e", "#e17055"
+];
 
-// Função principal
+function ChartContainer({title, children}: { title: string; children: React.ReactNode }) {
+    return (
+        <Card className="col-span-1 w-full">
+            <CardHeader>
+                <CardTitle>{title}</CardTitle>
+            </CardHeader>
+            <CardContent className="flex justify-center w-full">
+                <ResponsiveContainer width="100%" height={400}>
+                    {children}
+                </ResponsiveContainer>
+            </CardContent>
+        </Card>
+    );
+}
+
 export function StatisticsPage() {
-    const [selectedPeriodo, setSelectedPeriodo] = React.useState("Mensal")
+    const [sectorsData, setSectorsData] = React.useState<{ sectorId: number; count: number }[]>([]);
+    const [typesData, setTypesData] = React.useState<{ type: string; count: number }[]>([]);
+    const [totalTickets, setTotalTickets] = React.useState(0);
+    const [selectedPeriod, setSelectedPeriod] = React.useState("daily"); // Exemplo de período inicial
+
+    const fetchData = async (period: string) => {
+        const token = localStorage.getItem("token");
+        if (!token) return;
+        try {
+            const total = await getTotalTickets(token, period);
+            const sectors = await getTicketsBySector(token, period);
+            const types = await getTicketsByType(token, period);
+
+            setTotalTickets(total);
+            setSectorsData(sectors);
+            setTypesData(types);
+        } catch (error) {
+            console.error("Erro ao buscar estatísticas de tickets:", error);
+        }
+    };
+
+    React.useEffect(() => {
+        fetchData(selectedPeriod);
+    }, [selectedPeriod]);
 
     return (
         <SidebarProvider>
-            <AppSidebar/>
-            <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4 p-6 bg-white min-h-screen">
-                <Card className="col-span-1 md:col-span-4">
-                    <CardHeader>
-                        <CardTitle>Período de Visualização</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <Select onValueChange={setSelectedPeriodo}>
-                            <SelectTrigger className="w-full md:w-1/4">
-                                <span>{selectedPeriodo}</span>
-                            </SelectTrigger>
-                            <SelectContent>
-                                {periodos.map((periodo) => (
-                                    <SelectItem key={periodo} value={periodo}>
-                                        {periodo}
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </CardContent>
-                </Card>
-
-                {/* Gráfico de Chamados por Setor */}
-                <Card className="md:col-span-2 lg:col-span-2">
-                    <CardHeader>
-                        <CardTitle>Chamados por Setor</CardTitle>
-                    </CardHeader>
-                    <CardContent className="flex justify-center">
-                        <PieChart width={400} height={400}>
+            <AppSidebar />
+            <div className="flex-1 grid grid-cols-1 gap-6 p-6 bg-white min-h-screen">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
+                    <ChartContainer title="Tickets por Setor">
+                        <PieChart>
                             <Pie
-                                data={setoresData}
-                                dataKey="chamados"
-                                nameKey="category"
+                                data={sectorsData}
+                                dataKey="count"
+                                nameKey="sectorId"
                                 innerRadius={80}
                                 outerRadius={160}
-                                fill="#8884d8"
+                                label={({ name }) => `${name}`}
                             >
-                                <Label value="Chamados" position="center" />
+                                {sectorsData.map((entry, index) => (
+                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                ))}
+                                <Label value="Tickets" position="center" />
                             </Pie>
+                            <Tooltip formatter={(value, name) => [`${value} Tickets`, `Setor: ${name}`]} />
                         </PieChart>
-                    </CardContent>
-                </Card>
+                    </ChartContainer>
 
-                {/* Gráfico de Chamados por Tipo */}
-                <Card className="md:col-span-2 lg:col-span-2">
-                    <CardHeader>
-                        <CardTitle>Chamados por Tipo</CardTitle>
-                    </CardHeader>
-                    <CardContent className="flex justify-center">
-                        <BarChart width={400} height={400} data={tiposData}>
+                    <ChartContainer title="Tickets por Tipo">
+                        <BarChart data={typesData}>
                             <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="tipo" />
+                            <XAxis dataKey="type" />
                             <YAxis />
                             <Tooltip />
-                            <Bar dataKey="chamados" fill="#82ca9d" />
+                            <Bar dataKey="count" fill={COLORS[0]}>
+                                {typesData.map((entry, index) => (
+                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                ))}
+                            </Bar>
                         </BarChart>
-                    </CardContent>
-                </Card>
+                    </ChartContainer>
+                </div>
 
-                {/* Gráfico de Total de Chamados */}
-                <Card className="col-span-1 md:col-span-2 lg:col-span-4">
-                    <CardHeader>
-                        <CardTitle>Total de Chamados</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div
-                            className="text-4xl font-bold text-center">{setoresData.reduce((sum, item) => sum + item.chamados, 0)}</div>
-                        <div className="text-center text-muted-foreground">Chamados totais no período selecionado</div>
-                    </CardContent>
-                </Card>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
+                    <Card className="col-span-1 md:col-span-2 lg:col-span-4">
+                        <CardHeader>
+                            <CardTitle>Total de Chamados</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <div className="text-4xl font-bold text-center">{totalTickets}</div>
+                            <div className="text-center text-muted-foreground">Total de tickets no período selecionado</div>
+                        </CardContent>
+                    </Card>
+                </div>
             </div>
         </SidebarProvider>
-    )
+    );
 }

@@ -1,5 +1,5 @@
-import {useState} from "react";
-import {Button} from "@/components/ui/button";
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
 import {
     Dialog,
     DialogContent,
@@ -8,10 +8,12 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog";
-import {Label} from "@/components/ui/label";
-import {createTicket} from "../services/ticketService";
-import {Ticket} from "../services/ticketService.ts";
-import {useToast} from "@/hooks/use-toast";
+import { Label } from "@/components/ui/label";
+import { createTicket } from "../services/ticketService";
+import { Ticket } from "../services/ticketService.ts";
+import { useToast } from "@/hooks/use-toast";
+import { findAllTicketTypes } from "../services/ticketTypeService"; // Importa a função para buscar tipos de ticket
+import { TicketType } from "../services/ticketTypeService"; // Importa o tipo TicketType
 
 interface CreateTicketModalProps {
     isOpen: boolean;
@@ -24,18 +26,41 @@ export const CreateTicketModal: React.FC<CreateTicketModalProps> = ({
                                                                         onClose,
                                                                         onTicketCreated,
                                                                     }) => {
-    const {toast} = useToast();
+    const { toast } = useToast();
     const [selectedProblem, setSelectedProblem] = useState("");
     const [customDescription, setCustomDescription] = useState("");
+    const [ticketTypes, setTicketTypes] = useState<TicketType[]>([]);
+    const [ticketTypeId, setTicketTypeId] = useState<number | null>(null);
     const token = localStorage.getItem("token");
     if (!token) return;
 
+    const fetchTicketTypes = async () => {
+        try {
+            const types = await findAllTicketTypes(token);
+            setTicketTypes(types);
+        } catch (error) {
+            console.error("Erro ao buscar tipos de ticket:", error);
+            toast({
+                title: "Erro ao buscar tipos de ticket",
+                description: "Não foi possível carregar os tipos de ticket.",
+                variant: "destructive",
+            });
+        }
+    };
+
+    useEffect(() => {
+        fetchTicketTypes();
+    }, [token]);
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        const descriptionToSubmit = selectedProblem === "Outros" ? customDescription : selectedProblem; // Ajuste aqui
+        const descriptionToSubmit = selectedProblem === "Outros" ? customDescription : selectedProblem;
 
         try {
-            const newTicket = await createTicket(descriptionToSubmit, token);
+            if (ticketTypeId === null) {
+                throw new Error("O ID do tipo de ticket não está definido.");
+            }
+            const newTicket = await createTicket(descriptionToSubmit, ticketTypeId, token);
             onTicketCreated(newTicket);
             toast({
                 title: "Ticket criado com sucesso!",
@@ -44,6 +69,7 @@ export const CreateTicketModal: React.FC<CreateTicketModalProps> = ({
             });
             setSelectedProblem("");
             setCustomDescription("");
+            setTicketTypeId(null);
             onClose();
         } catch (error) {
             console.error("Erro ao criar ticket:", error);
@@ -73,7 +99,9 @@ export const CreateTicketModal: React.FC<CreateTicketModalProps> = ({
                             id="problemSelect"
                             value={selectedProblem}
                             onChange={(e) => {
+                                const selectedType = ticketTypes.find(type => type.name === e.target.value);
                                 setSelectedProblem(e.target.value);
+                                setTicketTypeId(selectedType ? selectedType.id : null);
                                 if (e.target.value !== "Outros") {
                                     setCustomDescription("");
                                 }
@@ -82,14 +110,11 @@ export const CreateTicketModal: React.FC<CreateTicketModalProps> = ({
                             required
                         >
                             <option value="" disabled>Selecione um assunto</option>
-                            <option value="Troca de equipamento">Troca de equipamento</option>
-                            <option value="Problemas com acesso ao sistema">Problemas com acesso ao sistema</option>
-                            <option value="Problemas de rede/internet">Problemas de rede/internet</option>
-                            <option value="Erro em software">Erro em software</option>
-                            <option value="Atualização de software">Atualização de software</option>
-                            <option value="Falha no sistema">Falha no sistema</option>
-                            <option value="Problemas com impressão">Problemas com impressão</option>
-                            <option value="Outros">Outros</option>
+                            {ticketTypes.map((type) => (
+                                <option key={type.id} value={type.name}>
+                                    {type.name}
+                                </option>
+                            ))}
                         </select>
                     </div>
                     {selectedProblem === "Outros" && (

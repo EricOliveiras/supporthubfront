@@ -1,5 +1,10 @@
 import apiClient from "@/api/apiClient.ts";
 
+export type TicketType = {
+    id: number;
+    name: string;
+};
+
 export type Ticket = {
     id: number;
     requester: string;
@@ -22,6 +27,7 @@ export type Ticket = {
         id: number;
         fullName: string;
     };
+    ticketType?: TicketType; // Adicionando ticketType aqui
 };
 
 export type TicketResponse = {
@@ -32,15 +38,15 @@ export type TicketsResponse = {
     tickets: Ticket[];
 };
 
-export const createTicket = async (problemDescription: string, token: string): Promise<Ticket> => {
+export const createTicket = async (problemDescription: string, ticketType: number, token: string): Promise<Ticket> => {
     try {
         const response = await apiClient.post<TicketResponse>('/tickets',
-            { problemDescription }, // Esta parte deve ser o corpo da requisição
+            {problemDescription, ticketType},
             {
                 headers: {
                     Authorization: `Bearer ${token}`
                 }
-            } // Este objeto deve ser a configuração
+            }
         );
         return response.data.ticket;
     } catch (error) {
