@@ -12,6 +12,7 @@ export const findAllSectors = async (token: string): Promise<Sector[]> => {
                 Authorization: `Bearer ${token}`
             }
         });
+        // @ts-ignore
         return response.data.sectors
     } catch (error) {
         console.error("Erro ao buscar todos os setores:", error);

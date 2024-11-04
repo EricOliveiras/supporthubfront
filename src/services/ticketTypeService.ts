@@ -109,6 +109,7 @@ export const fetchTicketsByDateRange = async (startDate: string, endDate: string
             startDate,
             endDate,
         });
+        // @ts-ignore
         return response.data.tickets; // Ajuste conforme a estrutura do seu retorno
     } catch (error) {
         console.error("Error fetching tickets by date range:", error);

@@ -104,11 +104,11 @@ export const findUserById = async (id: number, token: string): Promise<UserRespo
 };
 
 export const updateUser = async (id: number, data: {
+    sectorId: number | number;
     password: string;
-    sectorId: number;
     roleId: number;
     fullName: string;
-    isAdmin: boolean;
+    isActive: boolean;
     email: string
 }, token: string): Promise<UserResponse["user"]> => {
     try {
