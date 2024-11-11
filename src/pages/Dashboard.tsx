@@ -102,6 +102,26 @@ export function Dashboard() {
         }
     };
 
+    const handleTicketUpdated = async () => {
+        const token = localStorage.getItem('token');
+        if (!token) return;
+
+        try {
+            const user = await me(token);
+            setLoggedInUser(user);
+
+            const updatedTickets = user.isAdmin ? await findAllTickets(token) : await findTicketsByUserId(token);
+            setTickets(getTickets(updatedTickets));
+        } catch (error) {
+            console.error("Erro ao atualizar tickets:", error);
+            toast({
+                title: "Erro ao Atualizar Tickets",
+                description: "Houve um problema ao atualizar os tickets.",
+                variant: "destructive",
+            });
+        }
+    };
+
     useEffect(() => {
         const fetchUserData = async () => {
             const token = localStorage.getItem('token');
@@ -114,7 +134,6 @@ export function Dashboard() {
                 if (user) {
                     const allTickets = user.isAdmin ? await findAllTickets(token) : await findTicketsByUserId(token);
                     setTickets(getTickets(allTickets));
-                    await onTicketUpdated();
                 }
             } catch (error) {
                 console.error("Erro ao buscar usuário logado:", error);
@@ -139,45 +158,28 @@ export function Dashboard() {
                 ...prevTickets,
                 openTickets: [...prevTickets.openTickets, newTicket],
             }));
+            await handleTicketUpdated();
             toast({
                 title: "Novo Ticket!",
                 description: `Ticket "${newTicket.problemDescription}" foi criado.`,
                 variant: "default",
             });
-            await onTicketUpdated();
         };
 
         socket.on("ticketCreated", handleTicketCreated);
+        socket.on("ticketUpdated", handleTicketUpdated);
+        socket.on("assignedTicket", handleTicketUpdated);
 
         return () => {
             socket.off("ticketCreated", handleTicketCreated);
+            socket.off("ticketUpdated", handleTicketUpdated);
+            socket.off("assignedTicket", handleTicketUpdated);
         };
     }, [socket, toast]);
 
     useEffect(() => {
         setCurrentPage(1);
     }, [activeTab]);
-
-    const onTicketUpdated = async () => {
-        const token = localStorage.getItem('token');
-        if (!token) return;
-
-        try {
-            const user = await me(token);
-            setLoggedInUser(user);
-
-            const updatedTickets = user.isAdmin ? await findAllTickets(token) : await findTicketsByUserId(token);
-            setTickets(getTickets(updatedTickets));
-            onTicketUpdated();
-        } catch (error) {
-            console.error("Erro ao atualizar tickets:", error);
-            toast({
-                title: "Erro ao Atualizar Tickets",
-                description: "Houve um problema ao atualizar os tickets.",
-                variant: "destructive",
-            });
-        }
-    };
 
     const handleCreateNewTicket = () => {
         setModalOpen(true);
@@ -188,7 +190,6 @@ export function Dashboard() {
             ...prevTickets,
             openTickets: [...prevTickets.openTickets, newTicket],
         }));
-        onTicketUpdated();
     };
 
     const isAdmin = loggedInUser?.isAdmin;
@@ -265,7 +266,7 @@ export function Dashboard() {
                                         updatedAt={ticket.updatedAt}
                                         loggedInUserId={loggedInUser!.id}
                                         isAdmin={isAdmin as boolean}
-                                        onTicketUpdated={onTicketUpdated}
+                                        onTicketUpdated={handleTicketUpdated}
                                         Sector={{name: ticket.Sector?.name ?? ""}}
                                     />
                                 ))
